@@ -1,0 +1,14 @@
+fastapi==0.110.0
+python-dotenv==1.0.0
+pydantic==1.10.14
+qiniu==7.13.0
+redis==4.5.4
+starlette==0.36.3
+loguru==0.6.0
+shortuuid==1.0.13
+pillow==10.3.0
+accelerate==0.29.2
+diffusers==0.24.0
+torchvision==0.15.2
+torch==2.0.1
+opencv-python-headless==4.9.0.80
