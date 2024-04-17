@@ -8,8 +8,8 @@ from PIL import Image
 from starlette.middleware.cors import CORSMiddleware
 
 from common.config import env_settings
-from common.redis_conn import get_redis
 from common.service_auth import get_token
+from common.sqlite3_conn import get_db_connection
 from svd_service.schemas import (
     BaseResponse,
     CheckTaskResponse,
@@ -40,11 +40,33 @@ app.add_middleware(
 )
 
 
+def updata_task_status_in_db(
+    task_id: str,
+    task_status: str,
+    video_url: str,
+):
+    conn = get_db_connection()
+    conn.execute(
+        "UPDATE tasks SET status = ?, video_url = ? WHERE task_id = ?",
+        (task_status, video_url, task_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_task_data_from_db(task_id):
+    conn = get_db_connection()
+    task = conn.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,)).fetchone()
+    conn.close()
+    return dict(task)
+
+
 def generate_video_task(task_id: str, video_gen_param: VideoGenParam):
-    task_key = f"task-id-{task_id}"
-    conn = get_redis()
-    img_path = os.path.join(env_settings.IMG_DIR, f"imgid-{task_id}.png")
-    video_path = os.path.join(env_settings.IMG_DIR, f"vid-{task_id}.mp4")
+    material_dir = os.path.join(env_settings.DATA_DIR, "svd_materials")
+    if not os.path.exists(material_dir):
+        os.mkdir(material_dir)
+    img_path = os.path.join(material_dir, f"imgid-{task_id}.png")
+    video_path = os.path.join(material_dir, f"vid-{task_id}.mp4")
     motion_bucket_id = video_gen_param.motion_bucket_id
     noise_aug_strength = video_gen_param.noise_aug_strength
     video_url = generate_video_from_img(
@@ -54,16 +76,15 @@ def generate_video_task(task_id: str, video_gen_param: VideoGenParam):
         noise_aug_strength=noise_aug_strength,
     )
     if len(video_url) == 0:
-        task_data = {
-            "status": TaskStatus.FAILURE,
-        }
+        task_status = TaskStatus.FAILURE
     else:
-        task_data = {
-            "status": TaskStatus.SUCCESS,
-            "video_url": video_url,
-        }
+        task_status = TaskStatus.SUCCESS
 
-    conn.hset(task_key, mapping=task_data)
+    updata_task_status_in_db(
+        task_id,
+        task_status,
+        video_url,
+    )
     return
 
 
@@ -92,10 +113,13 @@ async def create_video_gen_task(
         img_path = os.path.join(env_settings.IMG_DIR, f"imgid-{task_id}.png")
         img.save(img_path)
         background_tasks.add_task(generate_video_task, task_id, video_gen_param)
-        conn = get_redis()
-        task_key = f"task-id-{task_id}"
-        task_data = {"status": TaskStatus.IN_PROGRESS}
-        conn.hset(task_key, mapping=task_data)
+        status = TaskStatus.IN_PROGRESS
+        video_url = ""
+        updata_task_status_in_db(
+            task_id,
+            status,
+            video_url,
+        )
         return CreateTaskResponse(task_id=task_id)
     except Exception as e:
         logger.error(f"Error: {e}")
@@ -104,13 +128,11 @@ async def create_video_gen_task(
 
 @app.get("/tasks/{task_id}/status")
 async def check_status(task_id: str) -> BaseResponse:
-    conn = get_redis()
-    task_key = f"task-id-{task_id}"
-    task_data = conn.hgetall(task_key)
-    if len(task_data) == 0:
+    task_data = get_task_data_from_db(task_id)
+    if not task_data:
         return BaseResponse(code=400, msg="task not found")
     status = task_data.get("status")
-    video_url = task_data.get("video_url") or ""
+    video_url = task_data.get("video_url")
     return CheckTaskResponse(
         status=status,
         video_url=video_url,

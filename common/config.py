@@ -9,12 +9,8 @@ class EnvironmentSetting(BaseSettings):
     SERVICE_ACCESS_TOKEN: str
     SVD_MODEL_DIR: str
 
-    # redis
-    REDIS_HOST: str
-    REDIS_PORT: str
-
-    # input image directory
-    IMG_DIR: str
+    # my data directory
+    DATA_DIR: str
 
     # qiniu cloud service
     QINIU_AK: str
