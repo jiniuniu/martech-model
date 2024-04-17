@@ -63,8 +63,6 @@ def get_task_data_from_db(task_id):
 
 def generate_video_task(task_id: str, video_gen_param: VideoGenParam):
     material_dir = os.path.join(env_settings.DATA_DIR, "svd_materials")
-    if not os.path.exists(material_dir):
-        os.mkdir(material_dir)
     img_path = os.path.join(material_dir, f"imgid-{task_id}.png")
     video_path = os.path.join(material_dir, f"vid-{task_id}.mp4")
     motion_bucket_id = video_gen_param.motion_bucket_id
@@ -110,7 +108,10 @@ async def create_video_gen_task(
                 msg="only allowable size: 1024x576",
             )
         task_id = shortuuid.ShortUUID().random(length=11)
-        img_path = os.path.join(env_settings.IMG_DIR, f"imgid-{task_id}.png")
+        material_dir = os.path.join(env_settings.DATA_DIR, "svd_materials")
+        if not os.path.exists(material_dir):
+            os.mkdir(material_dir)
+        img_path = os.path.join(material_dir, f"imgid-{task_id}.png")
         img.save(img_path)
         background_tasks.add_task(generate_video_task, task_id, video_gen_param)
         status = TaskStatus.IN_PROGRESS
