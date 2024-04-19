@@ -2,9 +2,8 @@ from functools import lru_cache
 
 import torch
 from diffusers import StableVideoDiffusionPipeline
-from diffusers.utils import export_to_video
+from diffusers.utils import export_to_video, load_image
 from loguru import logger
-from PIL import Image
 
 from common.config import env_settings
 from common.qiniu_conn import get_qiniu
@@ -19,28 +18,31 @@ def load_pipe():
         torch_dtype=torch.float16,
         variant="fp16",
     )
+    pipe.enable_model_cpu_offload()
+    pipe.unet.enable_forward_chunking()
     return pipe
 
 
 def generate_video_from_img(
     image_path: str,
     output_path: str,
-    motion_bucket_id: int = 127,
+    motion_bucket_id: int = 32,
     noise_aug_strength: int = 0.02,
+    rounds: int = 2,
     upload: bool = True,
 ) -> str:
     pipe = load_pipe()
-    pipe.to("cuda")
     try:
-        image = Image.open(image_path)
-        image = image.convert("RGB").resize((1024, 576))
-        frames = pipe(
-            image,
-            decode_chunk_size=8,
-            motion_bucket_id=motion_bucket_id,
-            noise_aug_strength=noise_aug_strength,
-        ).frames[0]
-        export_to_video(frames, output_path, fps=7)
+        image = load_image(image_path)
+        for _ in range(rounds):
+            frames = pipe(
+                image,
+                decode_chunk_size=8,
+                motion_bucket_id=motion_bucket_id,
+                noise_aug_strength=noise_aug_strength,
+            ).frames[0]
+            image = frames[-1]
+        export_to_video(frames, output_path, fps=6)
         logger.info(f"Video generated: {output_path}")
         if upload:
             qiniu = get_qiniu()
