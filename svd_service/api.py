@@ -1,8 +1,9 @@
 import os
 from io import BytesIO
+from typing import Annotated
 
 import shortuuid
-from fastapi import BackgroundTasks, Depends, FastAPI, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, UploadFile
 from loguru import logger
 from PIL import Image
 from starlette.middleware.cors import CORSMiddleware
@@ -15,7 +16,6 @@ from svd_service.schemas import (
     CheckTaskResponse,
     CreateTaskResponse,
     TaskStatus,
-    VideoGenParam,
 )
 from svd_service.svd import generate_video_from_img
 
@@ -61,17 +61,15 @@ def get_task_data_from_db(task_id):
     return dict(task)
 
 
-def generate_video_task(task_id: str, video_gen_param: VideoGenParam):
+def generate_video_task(task_id: str, motion_bucket_id: str):
     material_dir = os.path.join(env_settings.DATA_DIR, "svd_materials")
     img_path = os.path.join(material_dir, f"imgid-{task_id}.png")
     video_path = os.path.join(material_dir, f"vid-{task_id}.mp4")
-    motion_bucket_id = video_gen_param.motion_bucket_id
-    noise_aug_strength = video_gen_param.noise_aug_strength
     video_url = generate_video_from_img(
         image_path=img_path,
         output_path=video_path,
         motion_bucket_id=motion_bucket_id,
-        noise_aug_strength=noise_aug_strength,
+        noise_aug_strength=0.02,
     )
     if len(video_url) == 0:
         task_status = TaskStatus.FAILURE
@@ -86,34 +84,25 @@ def generate_video_task(task_id: str, video_gen_param: VideoGenParam):
     return
 
 
-def check_image_size(
-    image: Image.Image,
-    desired_size: tuple[int, int] = (1024, 576),
-) -> bool:
-    return image.size == desired_size
-
-
 @app.post("/create_video_gen_task")
 async def create_video_gen_task(
-    video_gen_param: VideoGenParam,
-    image: UploadFile,
+    image: Annotated[UploadFile, File()],
+    motion_bucket_id: Annotated[str, Form()],
     background_tasks: BackgroundTasks,
 ) -> BaseResponse:
     try:
         img = Image.open(BytesIO(await image.read()))
-        ok = check_image_size(img)
-        if not ok:
-            return BaseResponse(
-                code=400,
-                msg="only allowable size: 1024x576",
-            )
         task_id = shortuuid.ShortUUID().random(length=11)
         material_dir = os.path.join(env_settings.DATA_DIR, "svd_materials")
         if not os.path.exists(material_dir):
             os.mkdir(material_dir)
         img_path = os.path.join(material_dir, f"imgid-{task_id}.png")
         img.save(img_path)
-        background_tasks.add_task(generate_video_task, task_id, video_gen_param)
+        background_tasks.add_task(
+            generate_video_task,
+            task_id,
+            motion_bucket_id,
+        )
         status = TaskStatus.IN_PROGRESS
         video_url = ""
         updata_task_status_in_db(

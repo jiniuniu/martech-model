@@ -8,14 +8,6 @@ class BaseResponse(BaseModel):
     msg: str = Field("success", description="API status message")
 
 
-class VideoGenParam(BaseModel):
-    motion_bucket_id: int = Field(127, description="控制图片动态幅度")
-    noise_aug_strength: float = Field(
-        0.02,
-        description="这个值越大，和初始图片的差别越大，当动态幅度大时，这个也是当调大",
-    )
-
-
 class CreateTaskResponse(BaseResponse):
     task_id: str = Field(..., description="任务的ID")
 
