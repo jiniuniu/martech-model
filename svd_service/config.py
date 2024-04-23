@@ -6,15 +6,17 @@ load_dotenv()
 
 class EnvironmentSetting(BaseSettings):
 
-    # redis for celery backend and task queue tracking
-    REDIS_HOST: str
-    REDIS_PORT: str
-    REDIS_PWD: str
+    SERVICE_ACCESS_TOKEN: str
+    SVD_MODEL_DIR: str
 
-    # local data storage
+    # my data directory
     DATA_DIR: str
 
-    # qiniu cloud service video file storage
+    # redis
+    REDIS_HOST: str
+    REDIS_PORT: str
+
+    # qiniu cloud service
     QINIU_AK: str
     QINIU_SK: str
     QINIU_BUCKET_NAME: str

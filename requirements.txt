@@ -15,3 +15,5 @@ opencv-python-headless==4.9.0.80
 python-multipart==0.0.9
 uvicorn==0.22.0
 shortuuid==1.0.13
+loguru==0.6.0
+apscheduler==3.10.4
