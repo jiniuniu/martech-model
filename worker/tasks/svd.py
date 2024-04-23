@@ -31,11 +31,10 @@ def generate_video_from_img(
     pipe = load_pipe()
     try:
         image = load_image(image_path)
-        image = image.resize((1024, 576), Image.Resampling.LANCZOS)
-        imgs: list[Image.Image] = []
         w, h = image.size
         aspect_ratio = h / w
-
+        image = image.resize((1024, 576), Image.Resampling.LANCZOS)
+        imgs: list[Image.Image] = []
         width = 1024
         height = math.floor(width * aspect_ratio)
 
