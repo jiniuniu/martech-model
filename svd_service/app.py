@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from celery.result import AsyncResult
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 
@@ -68,25 +68,9 @@ async def celery_health_check():
 
 
 @app.post("/img2vid/create_task")
-async def create_img2vid_task(
-    file: Annotated[Optional[UploadFile], File()] = None,
-    url: Optional[str] = Form(None),
-):
-    if file and url:
-        return JSONResponse(
-            status_code=400,
-            content={
-                "message": "Please provide either an image file or a URL, not both.",
-            },
-        )
-
-    elif not file and not url:
-        return JSONResponse(
-            status_code=400,
-            content={"message": "No image file or URL provided."},
-        )
+async def create_img2vid_task(file: Annotated[UploadFile, File()]):
     try:
-        img_path = await validate_image_file(upload_file=file, image_url=url)
+        img_path = validate_image_file(upload_file=file)
         task = celery_app.send_task("img_to_video", args=[img_path])
         redis_client.lpush("task_queue", task.id)
         return {"task_id": task.id}

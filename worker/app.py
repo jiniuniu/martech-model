@@ -34,10 +34,7 @@ def test_celery(a: int, b: int):
 
 
 @app.task(name="img_to_video")
-def img_to_video(
-    image_path: str,
-    upload: bool = True,
-) -> dict:
+def img_to_video(image_path: str) -> dict:
     try:
         file_dir = os.path.dirname(image_path)
         vid = shortuuid.ShortUUID().random(length=11)
@@ -48,14 +45,13 @@ def img_to_video(
         )
 
         if ok:
-            if upload:
-                video_url = qiniu.upload_file(
-                    output_path,
-                    upload_dir="svd_materials",
-                )
-                return {"url": video_url}
-            else:
-                return {"output_path": output_path}
+            video_url = qiniu.upload_file(
+                output_path,
+                upload_dir="svd_materials",
+            )
+            os.remove(image_path)
+            os.remove(output_path)
+            return {"url": video_url}
     except Exception as exc:
         logger.error(f"Error generating video: {exc}")
     return {}
