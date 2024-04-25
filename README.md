@@ -25,7 +25,7 @@ bash <output_dir>/miniconda.sh
 
 
 ### 安装和运行 redis
-这里 redis 跑在本地
+这里 redis 跑在本地，如果是连外部 Redis 不需要这个，在.env里配置相应参数
 ```bash
 sudo apt-get update
 sudo apt-get install redis-server
