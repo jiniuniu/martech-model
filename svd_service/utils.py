@@ -1,5 +1,6 @@
 import io
 import os
+from typing import Optional
 
 import httpx
 from fastapi import HTTPException, UploadFile
@@ -40,7 +41,10 @@ def verify_image(image_data: io.BytesIO):
     return image_data
 
 
-async def validate_image_file(upload_file: UploadFile = None, image_url: str = None):
+async def validate_image_file(
+    upload_file: Optional[UploadFile],
+    image_url: Optional[str],
+) -> str:
 
     if upload_file and image_url:
         raise HTTPException(

@@ -69,7 +69,7 @@ async def celery_health_check():
 
 @app.post("/img2vid/create_task")
 async def create_img2vid_task(
-    file: Annotated[UploadFile, File(None)],
+    file: Annotated[Optional[UploadFile], File()] = None,
     url: Optional[str] = Form(None),
 ):
     if file and url:
