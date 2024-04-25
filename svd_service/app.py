@@ -86,7 +86,7 @@ async def create_img2vid_task(
             content={"message": "No image file or URL provided."},
         )
     try:
-        img_path = await validate_image_file(file=file, url=url)
+        img_path = await validate_image_file(upload_file=file, image_url=url)
         task = celery_app.send_task("img_to_video", args=[img_path])
         redis_client.lpush("task_queue", task.id)
         return {"task_id": task.id}
