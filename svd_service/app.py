@@ -1,3 +1,4 @@
+import tempfile
 from contextlib import asynccontextmanager
 from typing import Annotated, Optional
 
@@ -7,6 +8,7 @@ from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 
+from common.qiniu_conn import get_qiniu
 from common.redis_conn import get_redis_conn
 from svd_service.auth import get_token
 from svd_service.utils import validate_image_file
@@ -14,7 +16,7 @@ from worker.app import app as celery_app
 
 TASK_QUEUE_NAME = "img2vid_queue"
 redis_client = get_redis_conn()
-
+q = get_qiniu()
 
 deps = [Depends(get_token)]
 
@@ -74,6 +76,23 @@ async def create_img2vid_task(file: Annotated[UploadFile, File()]):
         task = celery_app.send_task("img_to_video", args=[img_path])
         redis_client.lpush("task_queue", task.id)
         return {"task_id": task.id}
+    except HTTPException as e:
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "message": e.detail,
+            },
+        )
+
+
+@app.post("/img2vid/create_task_qiniu")
+async def create_img2vid_task_qiniu(img_key: str):
+    try:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            img_path = q.download_file(file_key=img_key, output_dir=tmp_dir)
+            task = celery_app.send_task("img_to_video", args=[img_path])
+            redis_client.lpush("task_queue", task.id)
+            return {"task_id": task.id}
     except HTTPException as e:
         return JSONResponse(
             status_code=e.status_code,

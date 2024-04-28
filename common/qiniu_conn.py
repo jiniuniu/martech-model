@@ -18,7 +18,7 @@ class QiNiuConnector:
         self.bucket_domain = env_settings.QINIU_BUCKET_DOMAIN
 
     def get_public_url(self, file_key: str):
-        return "http://%s/%s" % (self.bucket_domain, file_key)
+        return "https://%s/%s" % (self.bucket_domain, file_key)
 
     def _get_private_url(self, file_key: str):
         base_url = self.get_public_url(file_key)
@@ -31,7 +31,7 @@ class QiNiuConnector:
         res, info = put_file(token, upload_key, local_file_path, version="v2")
         return upload_key
 
-    def download_file(self, file_key: str, output_dir: str):
+    def download_file(self, file_key: str, output_dir: str) -> str:
         url = self._get_private_url(file_key)
         resp = requests.get(url, stream=True)
         filename = os.path.basename(file_key)
@@ -41,13 +41,20 @@ class QiNiuConnector:
             with open(output_path, "wb") as file:
                 # Use shutil.copyfileobj to copy the response stream to the file
                 shutil.copyfileobj(resp.raw, file)
-                return
+            return output_path
         except Exception as e:
             logger.error(f"error: {e}")
-            return
+            return ""
 
 
 @lru_cache(1)
 def get_qiniu():
     qiniu = QiNiuConnector()
     return qiniu
+
+
+if __name__ == "__main__":
+    q = get_qiniu()
+    img_key = "svd_materials/still_frames/1783379873989922816.png"
+    output_path = q.download_file(img_key, ".")
+    print(output_path)
