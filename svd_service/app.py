@@ -1,13 +1,15 @@
-import tempfile
+import os
 from contextlib import asynccontextmanager
-from typing import Annotated, Optional
+from typing import Optional
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from celery.result import AsyncResult
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 
+from common.config import env_settings
 from common.qiniu_conn import get_qiniu
 from common.redis_conn import get_redis_conn
 from svd_service.auth import get_token
@@ -69,30 +71,40 @@ async def celery_health_check():
     return {"task_id": task.id}
 
 
+class Img2VidInput(BaseModel):
+    file: Optional[UploadFile] = None
+    img_key: Optional[str] = None
+
+
 @app.post("/img2vid/create_task")
-async def create_img2vid_task(file: Annotated[UploadFile, File()]):
+async def create_img2vid_task(input: Img2VidInput):
+    if input.file and input.img_key:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "message": "Please provide either a file or an image URL, not both."
+            },
+        )
+    if not input.file and not input.img_key:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"message": "Please provide either a file or an image URL."},
+        )
+
     try:
-        img_path = validate_image_file(upload_file=file)
+        if input.file:
+            img_path = validate_image_file(upload_file=input.file)
+        else:
+            out_dir = os.path.join(env_settings.DATA_DIR, "svd_materials")
+            if not os.path.exists(out_dir):
+                os.makedirs(out_dir, exist_ok=True)
+            img_path = q.download_file(
+                input.img_key,
+                output_dir=out_dir,
+            )
         task = celery_app.send_task("img_to_video", args=[img_path])
         redis_client.lpush("task_queue", task.id)
         return {"task_id": task.id}
-    except HTTPException as e:
-        return JSONResponse(
-            status_code=e.status_code,
-            content={
-                "message": e.detail,
-            },
-        )
-
-
-@app.post("/img2vid/create_task_qiniu")
-async def create_img2vid_task_qiniu(img_key: str):
-    try:
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            img_path = q.download_file(file_key=img_key, output_dir=tmp_dir)
-            task = celery_app.send_task("img_to_video", args=[img_path])
-            redis_client.lpush("task_queue", task.id)
-            return {"task_id": task.id}
     except HTTPException as e:
         return JSONResponse(
             status_code=e.status_code,
