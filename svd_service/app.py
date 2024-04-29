@@ -60,7 +60,7 @@ async def create_img2vid_task(file: UploadFile = File(None), img_key: str = Form
 
     try:
         if file:
-            img_path = validate_image_file(upload_file=input.file)
+            img_path = validate_image_file(upload_file=file)
         else:
             out_dir = os.path.join(env_settings.DATA_DIR, "svd_materials")
             if not os.path.exists(out_dir):
