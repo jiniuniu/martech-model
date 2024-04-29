@@ -7,7 +7,7 @@ from diffusers.utils import export_to_video, load_image
 from loguru import logger
 from PIL import Image, UnidentifiedImageError
 
-from worker.config import env_settings
+from common.config import env_settings
 
 
 @lru_cache(1)

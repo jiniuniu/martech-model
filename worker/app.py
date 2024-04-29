@@ -4,8 +4,8 @@ import shortuuid
 from celery import Celery
 from loguru import logger
 
+from common.config import env_settings
 from common.qiniu_conn import get_qiniu
-from worker.config import env_settings
 from worker.tasks.health_check import simulate_long_task
 from worker.tasks.svd import generate_video_from_img
 
@@ -45,13 +45,13 @@ def img_to_video(image_path: str) -> dict:
         )
 
         if ok:
-            video_url = qiniu.upload_file(
+            video_key = qiniu.upload_file(
                 output_path,
                 upload_dir="svd_materials",
             )
             os.remove(image_path)
             os.remove(output_path)
-            return {"url": video_url}
+            return {"url": f"{env_settings.QINIU_BUCKET_DOMAIN}/{video_key}"}
     except Exception as exc:
         logger.error(f"Error generating video: {exc}")
     return {}

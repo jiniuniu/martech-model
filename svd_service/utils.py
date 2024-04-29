@@ -4,7 +4,7 @@ import os
 from fastapi import HTTPException, UploadFile
 from PIL import Image
 
-from svd_service.config import env_settings
+from common.config import env_settings
 
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}

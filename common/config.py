@@ -6,6 +6,11 @@ except:
 
 class EnvironmentSetting(BaseSettings):
 
+    SERVICE_ACCESS_TOKEN: str
+
+    # svd model path
+    SVD_MODEL_DIR: str
+
     # redis for celery backend and task queue tracking
     REDIS_HOST: str
     REDIS_PORT: str

@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException
 from fastapi.security.http import HTTPAuthorizationCredentials, HTTPBearer
 from starlette import status
 
-from svd_service.config import env_settings
+from common.config import env_settings
 
 # Constants for messages
 UNAUTHORIZED_DETAIL = "Bearer token missing or unknown"

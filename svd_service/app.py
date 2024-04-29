@@ -2,52 +2,24 @@ import os
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from celery.result import AsyncResult
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 
 from common.config import env_settings
 from common.qiniu_conn import get_qiniu
-from common.redis_conn import get_redis_conn
 from svd_service.auth import get_token
 from svd_service.utils import validate_image_file
 from worker.app import app as celery_app
 
-TASK_QUEUE_NAME = "img2vid_queue"
-redis_client = get_redis_conn()
 q = get_qiniu()
 
 deps = [Depends(get_token)]
 
 
-def cleanup_queue():
-    for task_id in redis_client.lrange(TASK_QUEUE_NAME, 0, -1):
-        result = AsyncResult(task_id, app=celery_app)
-        if result.state in ["SUCCESS", "FAILURE"]:
-            redis_client.lrem(TASK_QUEUE_NAME, 0, task_id)
-
-
-scheduler = AsyncIOScheduler()
-scheduler.add_job(
-    cleanup_queue,
-    "interval",
-    minutes=60,
-)  # Adjust the timing as necessary
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    try:
-        scheduler.start()
-        yield
-    finally:
-        scheduler.shutdown()
-
-
-app = FastAPI(dependencies=deps, lifespan=lifespan)
+app = FastAPI(dependencies=deps)
 
 
 app.add_middleware(
@@ -71,39 +43,33 @@ async def celery_health_check():
     return {"task_id": task.id}
 
 
-class Img2VidInput(BaseModel):
-    file: Optional[UploadFile] = None
-    img_key: Optional[str] = None
-
-
 @app.post("/img2vid/create_task")
-async def create_img2vid_task(input: Img2VidInput):
-    if input.file and input.img_key:
+async def create_img2vid_task(file: UploadFile = File(None), img_key: str = Form(None)):
+    if file and img_key:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={
                 "message": "Please provide either a file or an image URL, not both."
             },
         )
-    if not input.file and not input.img_key:
+    if not file and not img_key:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"message": "Please provide either a file or an image URL."},
         )
 
     try:
-        if input.file:
+        if file:
             img_path = validate_image_file(upload_file=input.file)
         else:
             out_dir = os.path.join(env_settings.DATA_DIR, "svd_materials")
             if not os.path.exists(out_dir):
                 os.makedirs(out_dir, exist_ok=True)
             img_path = q.download_file(
-                input.img_key,
+                img_key,
                 output_dir=out_dir,
             )
         task = celery_app.send_task("img_to_video", args=[img_path])
-        redis_client.lpush("task_queue", task.id)
         return {"task_id": task.id}
     except HTTPException as e:
         return JSONResponse(
@@ -114,18 +80,13 @@ async def create_img2vid_task(input: Img2VidInput):
         )
 
 
-@app.get("/img2vid/task_status/{task_id}")
-async def check_img2vid_task_status(task_id: str):
+@app.get("/task_status/{task_id}")
+async def check_task_status(task_id: str):
     task_result = AsyncResult(task_id, app=celery_app)
     status = task_result.status
 
     if task_result.state == "PENDING":
-        queue = redis_client.lrange(TASK_QUEUE_NAME, 0, -1)
-        position = queue.index(task_id) + 1 if task_id in queue else None
-        if position:
-            return {"status": "in_queue", "position": position}
-        else:
-            return {"status": "not_found"}
+        return {"status": "in_queue"}
     elif status == "STARTED":
         return {"status": "running"}
     elif status == "SUCCESS":
