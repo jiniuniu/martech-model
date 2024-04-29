@@ -51,7 +51,7 @@ def img_to_video(image_path: str) -> dict:
             )
             os.remove(image_path)
             os.remove(output_path)
-            return {"url": f"{env_settings.QINIU_BUCKET_DOMAIN}/{video_key}"}
+            return {"url": f"https://{env_settings.QINIU_BUCKET_DOMAIN}/{video_key}"}
     except Exception as exc:
         logger.error(f"Error generating video: {exc}")
     return {}
