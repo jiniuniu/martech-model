@@ -26,8 +26,7 @@ def generate_video_from_img(
     output_path: str,
     motion_bucket_id: int = 32,
     noise_aug_strength: int = 0.02,
-    rounds: int = 2,
-) -> str:
+) -> bool:
     pipe = load_pipe()
     try:
         image = load_image(image_path)
@@ -38,16 +37,13 @@ def generate_video_from_img(
         width = 1024
         height = math.floor(width * aspect_ratio)
 
-        for _ in range(rounds):
-            frames = pipe(
-                image,
-                decode_chunk_size=8,
-                motion_bucket_id=motion_bucket_id,
-                noise_aug_strength=noise_aug_strength,
-            ).frames[0]
-            imgs += frames
-            image = frames[-1]
-        imgs = [img.resize((width, height), Image.Resampling.LANCZOS) for img in imgs]
+        frames = pipe(
+            image,
+            decode_chunk_size=8,
+            motion_bucket_id=motion_bucket_id,
+            noise_aug_strength=noise_aug_strength,
+        ).frames[0]
+        imgs = [img.resize((width, height), Image.Resampling.LANCZOS) for img in frames]
         export_to_video(imgs, output_path, fps=6)
         logger.info(f"Video generated: {output_path}")
         return True
