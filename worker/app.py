@@ -3,6 +3,7 @@ import os
 import shortuuid
 from celery import Celery
 from loguru import logger
+from moviepy.editor import VideoFileClip, concatenate_videoclips
 
 from common.config import env_settings
 from common.qiniu_conn import get_qiniu
@@ -45,6 +46,9 @@ def img_to_video(image_path: str) -> dict:
         )
 
         if ok:
+            clip = VideoFileClip(output_path)
+            clip = concatenate_videoclips([clip])
+            clip.write_videofile(output_path)
             video_key = qiniu.upload_file(
                 output_path,
                 upload_dir="svd_materials",
