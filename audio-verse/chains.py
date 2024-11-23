@@ -63,6 +63,7 @@ if __name__ == "__main__":
     chat_chain = build_chat_chain(CHAT_SYS_MSG)
     user_input = "tell me a story about Einstein."
     inp = {"prompt": user_input}
+    accumulated_text = ""
     for chunk in chat_chain.stream(
         inp,
         config={
@@ -71,4 +72,10 @@ if __name__ == "__main__":
             },
         },
     ):
-        print(chunk, end="", flush=True)
+        if chunk:
+            accumulated_text += chunk
+            if chunk.endswith("\n"):
+                if accumulated_text.strip() == "":
+                    continue
+                print(f"acc: {accumulated_text}")
+                accumulated_text = ""

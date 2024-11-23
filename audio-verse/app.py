@@ -49,7 +49,9 @@ async def generate_response(websocket: WebSocket, session_id: str, text: str):
             complete_text += chunk
             accumulated_text += chunk
             await websocket.send_json({"type": "text", "content": chunk})
-            if chunk.endswith(("\n\n")):
+            if chunk.endswith("\n"):
+                if accumulated_text.strip() == "":
+                    continue
                 logger.debug(f"accumulated text: {accumulated_text}")
                 await generate_and_send_tts(websocket, accumulated_text)
                 accumulated_text = ""
@@ -60,6 +62,8 @@ async def generate_response(websocket: WebSocket, session_id: str, text: str):
         await generate_and_send_tts(websocket, accumulated_text)
 
     logger.debug(f"complete text: {complete_text}")
+    # Send an "end" message to signal that the audio stream is complete
+    await websocket.send_json({"type": "end", "content": "Audio stream complete"})
 
 
 async def generate_and_send_tts(websocket: WebSocket, text: str):
@@ -69,9 +73,12 @@ async def generate_and_send_tts(websocket: WebSocket, text: str):
 
         # Read the PCM data from the buffer
         pcm_data = pcm_buffer.read()
+        # Send PCM data in smaller chunks
+        chunk_size = 1024  # Adjust chunk size as needed
+        for i in range(0, len(pcm_data), chunk_size):
+            chunk = pcm_data[i : i + chunk_size]
+            await websocket.send_bytes(chunk)
 
-        # Send the PCM data over the WebSocket
-        await websocket.send_bytes(pcm_data)
     except Exception as e:
         # Handle and log errors
         logger.exception(f"Failed to generate or send TTS data. {e}")
@@ -81,4 +88,4 @@ async def generate_and_send_tts(websocket: WebSocket, text: str):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, port=6799)
+    uvicorn.run(app, host="0.0.0.0", port=27777)
