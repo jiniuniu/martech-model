@@ -1,4 +1,3 @@
-import asyncio
 import json
 
 import pyaudio
@@ -16,15 +15,12 @@ stream = p.open(
 )
 
 
-async def websocket_audio_client():
-    uri = "ws://localhost:6799/ws/chat"
+async def websocket_audio_client(uri: str, user_input: str):
 
     async with websockets.connect(uri) as websocket:
         # Send an initial message to start audio streaming
         await websocket.send(
-            json.dumps(
-                {"type": "text", "content": "Hello, chatbot!", "session_id": "12345"}
-            )
+            json.dumps({"type": "text", "content": user_input, "session_id": "12345"})
         )
         try:
             async for message in websocket:
@@ -41,7 +37,3 @@ async def websocket_audio_client():
             stream.stop_stream()
             stream.close()
             p.terminate()
-
-
-# Run the WebSocket client
-asyncio.run(websocket_audio_client())

@@ -62,17 +62,10 @@ async def generate_response(websocket: WebSocket, session_id: str, text: str):
     logger.debug(f"complete text: {complete_text}")
 
 
-async def generate_and_send_tts(
-    websocket: WebSocket,
-    text: str,
-    ref_wav_file_path: str,
-    ref_text: str = "",
-):
+async def generate_and_send_tts(websocket: WebSocket, text: str):
     try:
         # Call the text_to_speech function to generate PCM data
-        pcm_buffer = text_to_speech(
-            text=text, ref_wav_file_path=ref_wav_file_path, ref_text=ref_text
-        )
+        pcm_buffer = text_to_speech(text)
 
         # Read the PCM data from the buffer
         pcm_data = pcm_buffer.read()
@@ -81,7 +74,7 @@ async def generate_and_send_tts(
         await websocket.send_bytes(pcm_data)
     except Exception as e:
         # Handle and log errors
-        logger.exception("Failed to generate or send TTS data.")
+        logger.exception(f"Failed to generate or send TTS data. {e}")
         await websocket.close(code=1011, reason="Internal server error")
 
 

@@ -1,6 +1,7 @@
 import io
 import re
 import time
+from importlib.resources import files
 
 import librosa
 import numpy as np
@@ -8,7 +9,7 @@ from load_models import load_f5_tts_model
 from loguru import logger
 
 
-def text_to_speech(text: str, ref_wav_file_path: str, ref_text: str = "") -> io.BytesIO:
+def text_to_speech(text: str) -> io.BytesIO:
     try:
         f5tts = load_f5_tts_model()
         text = text.strip()
@@ -18,8 +19,10 @@ def text_to_speech(text: str, ref_wav_file_path: str, ref_text: str = "") -> io.
         text = re.sub(r"[^\x00-\x7F]+", "", text)
         t0 = time.time()
         wav_np, sr, _ = f5tts.infer(
-            ref_file=ref_wav_file_path,
-            ref_text=ref_text,
+            ref_file=str(
+                files("f5_tts").joinpath("infer/examples/basic/basic_ref_en.wav")
+            ),
+            ref_text="some call me nature, others call me mother nature.",
             gen_text=text,
         )
         generation_time = time.time() - t0
