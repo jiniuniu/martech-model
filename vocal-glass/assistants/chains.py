@@ -1,4 +1,3 @@
-import base64
 from typing import List
 
 from config import env_settings
@@ -15,12 +14,6 @@ from sqlalchemy.ext.asyncio import create_async_engine
 async_engine = create_async_engine(env_settings.memory_uri)
 
 
-def encode_image(img_path: str):
-    with open(img_path, "rb") as image_file:
-        img_base64 = base64.b64encode(image_file.read()).decode("utf-8")
-    return img_base64
-
-
 def get_sql_chat_message_history(session_id: str) -> BaseChatMessageHistory:
     return SQLChatMessageHistory(session_id, connection=async_engine)
 
@@ -28,21 +21,20 @@ def get_sql_chat_message_history(session_id: str) -> BaseChatMessageHistory:
 def build_vision_chat_chain(
     llm: ChatOpenAI,
     sys_msg: str,
-    image_paths: List[str] = None,
+    images_base64: List[str] = [],
 ) -> RunnableWithMessageHistory:
     messages = [
         SystemMessage(content=sys_msg),
         MessagesPlaceholder(variable_name="chat_history"),
     ]
-    if image_paths:
+    if len(images_base64) > 0:
         human_message = (
             "human",
             [
                 {"type": "text", "text": "{user_input}"},
             ],
         )
-        for image_path in image_paths:
-            image_base64 = encode_image(image_path)
+        for image_base64 in images_base64:
             img_data = {
                 "type": "image_url",
                 "image_url": f"data:image/jpeg;base64,{image_base64}",

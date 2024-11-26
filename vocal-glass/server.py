@@ -1,10 +1,15 @@
 import base64
 import wave
 from io import BytesIO
+from typing import List
 
+from assistants.chains import build_vision_chat_chain
+from assistants.llms import get_llm
+from assistants.sys_prompts import DEFAULT
 from audio.api import text_to_speech, transcribe_audio
 from chainlit.utils import mount_chainlit
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 from loguru import logger
 from pydantic import BaseModel
 
@@ -59,6 +64,38 @@ async def audio_to_text(file: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Error processing audio file: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error.")
+
+
+class VisionRequest(BaseModel):
+    user_input: str
+    session_id: str
+    images_base64: List[str] = []
+
+
+@app.post("/vision_chat")
+async def vision_chat(request: VisionRequest):
+    try:
+        user_input = request.user_input
+        session_id = request.session_id
+        images_base64 = request.images_base64
+        vision_chain = build_vision_chat_chain(get_llm(), DEFAULT, images_base64)
+
+        inp = {"user_input": user_input}
+
+        async def generate():
+            msg = ""
+            async for chunk in vision_chain.astream(
+                inp, config={"configurable": {"session_id": session_id}}
+            ):
+                if chunk:
+                    msg += chunk
+                    yield chunk
+
+        return StreamingResponse(generate(), media_type="text/plain")
+    except Exception as e:
+        # Log the exception for further analysis
+        print(f"An error occurred: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 mount_chainlit(app=app, target="cl_app.py", path="/chatui")
