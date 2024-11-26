@@ -21,7 +21,8 @@ async def process_images(elements: List[ElementBased]) -> List[str]:
     img_paths = []
     for element in elements:
         if "image" in element.mime:
-            img_paths.append(resize_image(element.path))
+            resize_image(element.path)
+            img_paths.append(element.path)
     return img_paths
 
 
