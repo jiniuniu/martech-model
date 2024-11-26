@@ -6,6 +6,7 @@ class EnvironmentSetting(BaseSettings):
     LLM_API_KEY: str
     LLM_API_ENDPOINT: str
     LLM_NAME: str
+    MEMORY_URI: str
     WHISPER_MODEL_PATH: str
     F5_TTS_CKPT_PATH: str
 

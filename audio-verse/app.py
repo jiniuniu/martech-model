@@ -2,7 +2,7 @@ import base64
 import wave
 from io import BytesIO
 
-from chains import build_chat_chain
+from chains import build_vision_chat_chain
 from fastapi import (
     FastAPI,
     File,
@@ -11,113 +11,115 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
+from fastapi.responses import HTMLResponse
 from loguru import logger
-from prompts import CHAT_SYS_MSG
+from prompts import DEFAULT
 from pydantic import BaseModel
 from stt import transcribe_audio
 from tts import text_to_speech
-from ws_manager import ConnectionManager
+
+# from ws_manager import ConnectionManager
 
 chat_chain = build_chat_chain(CHAT_SYS_MSG)
 
-ws_conn_manager = ConnectionManager()
+# ws_conn_manager = ConnectionManager()
 app = FastAPI()
 
 
-@app.websocket("/ws/chat")
-async def websocket_endpoint(websocket: WebSocket):
-    session_id = await ws_conn_manager.connect(websocket)
-    try:
-        while True:
-            message = websocket.receive()
+# @app.websocket("/ws/chat")
+# async def websocket_endpoint(websocket: WebSocket):
+#     session_id = await ws_conn_manager.connect(websocket)
+#     try:
+#         while True:
+#             message = websocket.receive()
 
-            if isinstance(message, bytes):  # Audio data
-                logger.debug(f"audio data received, size: {len(message)} bytes")
-                connection_info = ws_conn_manager.active_connections[websocket]
-                connection_info["audio_buffer"].write(message)
-            elif isinstance(message, str):
-                if message == "pong":
-                    logger.debug(f"Pong received for session_id: {session_id}")
-                elif message == "stop_recording":
-                    logger.info("Stop recording received, processing audio.")
-                    await process_audio_and_respond(websocket, session_id)
-                else:
-                    logger.info(f"Text message received: {message}")
+#             if isinstance(message, bytes):  # Audio data
+#                 logger.debug(f"audio data received, size: {len(message)} bytes")
+#                 connection_info = ws_conn_manager.active_connections[websocket]
+#                 connection_info["audio_buffer"].write(message)
+#             elif isinstance(message, str):
+#                 if message == "pong":
+#                     logger.debug(f"Pong received for session_id: {session_id}")
+#                 elif message == "stop_recording":
+#                     logger.info("Stop recording received, processing audio.")
+#                     await process_audio_and_respond(websocket, session_id)
+#                 else:
+#                     logger.info(f"Text message received: {message}")
 
-    except WebSocketDisconnect:
-        logger.warning("WebSocket disconnected.")
-    except Exception as e:
-        logger.error(f"Error in WebSocket communication: {e}")
-    finally:
-        await ws_conn_manager.disconnect(websocket)
-
-
-async def process_audio_and_respond(websocket: WebSocket, session_id: str):
-    """Processes the audio buffer, generates responses, and sends them back."""
-    connection_info = ws_conn_manager.active_connections[websocket]
-    audio_buffer: BytesIO = connection_info["audio_buffer"]
-
-    # Reset the buffer to read from the beginning
-    audio_buffer.seek(0)
-
-    # Transcribe the audio
-    transcription = transcribe_audio(audio_buffer)
-    logger.info(f"Transcribed text: {transcription}")
-
-    # Send transcription to the client
-    await websocket.send_json({"type": "transcription", "content": transcription})
-
-    # Generate chat response and send TTS audio interleave
-    await generate_response(transcription, session_id)
-
-    # Clear the buffer for the next recording
-    audio_buffer.seek(0)
-    audio_buffer.truncate(0)
+#     except WebSocketDisconnect:
+#         logger.warning("WebSocket disconnected.")
+#     except Exception as e:
+#         logger.error(f"Error in WebSocket communication: {e}")
+#     finally:
+#         await ws_conn_manager.disconnect(websocket)
 
 
-async def generate_response(websocket: WebSocket, session_id: str, text: str):
-    inp = {"prompt": text}
-    complete_text = ""
-    accumulated_text = ""
-    async for chunk in chat_chain.astream(
-        inp, config={"configurable": {"session_id": session_id}}
-    ):
-        if chunk:
-            complete_text += chunk
-            accumulated_text += chunk
-            await websocket.send_json({"type": "response_text", "content": chunk})
-            if chunk.endswith("\n"):
-                if accumulated_text.strip() == "":
-                    continue
-                logger.debug(f"accumulated text: {accumulated_text}")
-                await generate_and_send_tts(websocket, accumulated_text)
-                accumulated_text = ""
+# async def process_audio_and_respond(websocket: WebSocket, session_id: str):
+#     """Processes the audio buffer, generates responses, and sends them back."""
+#     connection_info = ws_conn_manager.active_connections[websocket]
+#     audio_buffer: BytesIO = connection_info["audio_buffer"]
 
-    # Send any remaining text
-    if accumulated_text:
-        logger.debug(f"Remaining text: {accumulated_text}")
-        await generate_and_send_tts(websocket, accumulated_text)
+#     # Reset the buffer to read from the beginning
+#     audio_buffer.seek(0)
 
-    logger.debug(f"complete text: {complete_text}")
+#     # Transcribe the audio
+#     transcription = transcribe_audio(audio_buffer)
+#     logger.info(f"Transcribed text: {transcription}")
+
+#     # Send transcription to the client
+#     await websocket.send_json({"type": "transcription", "content": transcription})
+
+#     # Generate chat response and send TTS audio interleave
+#     await generate_response(transcription, session_id)
+
+#     # Clear the buffer for the next recording
+#     audio_buffer.seek(0)
+#     audio_buffer.truncate(0)
 
 
-async def generate_and_send_tts(websocket: WebSocket, text: str):
-    try:
-        # Call the text_to_speech function to generate PCM data
-        pcm_buffer = text_to_speech(text)
+# async def generate_response(websocket: WebSocket, session_id: str, text: str):
+#     inp = {"prompt": text}
+#     complete_text = ""
+#     accumulated_text = ""
+#     async for chunk in chat_chain.astream(
+#         inp, config={"configurable": {"session_id": session_id}}
+#     ):
+#         if chunk:
+#             complete_text += chunk
+#             accumulated_text += chunk
+#             await websocket.send_json({"type": "response_text", "content": chunk})
+#             if chunk.endswith("\n"):
+#                 if accumulated_text.strip() == "":
+#                     continue
+#                 logger.debug(f"accumulated text: {accumulated_text}")
+#                 await generate_and_send_tts(websocket, accumulated_text)
+#                 accumulated_text = ""
 
-        # Read the PCM data from the buffer
-        pcm_data = pcm_buffer.read()
-        # Send PCM data in smaller chunks
-        chunk_size = 1024  # Adjust chunk size as needed
-        for i in range(0, len(pcm_data), chunk_size):
-            chunk = pcm_data[i : i + chunk_size]
-            await websocket.send_bytes(chunk)
+#     # Send any remaining text
+#     if accumulated_text:
+#         logger.debug(f"Remaining text: {accumulated_text}")
+#         await generate_and_send_tts(websocket, accumulated_text)
 
-    except Exception as e:
-        # Handle and log errors
-        logger.exception(f"Failed to generate or send TTS data. {e}")
-        await websocket.close(code=1011, reason="Internal server error")
+#     logger.debug(f"complete text: {complete_text}")
+
+
+# async def generate_and_send_tts(websocket: WebSocket, text: str):
+#     try:
+#         # Call the text_to_speech function to generate PCM data
+#         pcm_buffer = text_to_speech(text)
+
+#         # Read the PCM data from the buffer
+#         pcm_data = pcm_buffer.read()
+#         # Send PCM data in smaller chunks
+#         chunk_size = 1024  # Adjust chunk size as needed
+#         for i in range(0, len(pcm_data), chunk_size):
+#             chunk = pcm_data[i : i + chunk_size]
+#             await websocket.send_bytes(chunk)
+
+#     except Exception as e:
+#         # Handle and log errors
+#         logger.exception(f"Failed to generate or send TTS data. {e}")
+#         await websocket.close(code=1011, reason="Internal server error")
 
 
 class TTSRequest(BaseModel):

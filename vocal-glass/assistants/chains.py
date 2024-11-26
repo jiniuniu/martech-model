@@ -12,7 +12,7 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_openai import ChatOpenAI
 from sqlalchemy.ext.asyncio import create_async_engine
 
-async_engine = create_async_engine(env_settings.MEMORY_URI)
+async_engine = create_async_engine(env_settings.memory_uri)
 
 
 def encode_image(img_path: str):
