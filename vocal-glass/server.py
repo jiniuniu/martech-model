@@ -235,7 +235,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Route to serve the HTML file
 @app.get("/audio-chat", response_class=HTMLResponse)
 async def audio_chat():
-    with open(os.path.join("static", "audio-chat.html"), "r") as f:
+    with open("audio-chat.html", "r") as f:
         return f.read()
 
 
