@@ -17,7 +17,8 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
-from fastapi.responses import StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from pydantic import BaseModel
 from storage_conn.qiniu_conn import get_qiniu
@@ -225,6 +226,17 @@ async def generate_and_send_tts(websocket: WebSocket, text: str):
     except Exception as e:
         logger.exception(f"Failed to generate or send TTS data. {e}")
         await websocket.close(code=1011, reason="Internal server error")
+
+
+# Serve static files (CSS, JS)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# Route to serve the HTML file
+@app.get("/audio-chat", response_class=HTMLResponse)
+async def audio_chat():
+    with open(os.path.join("static", "audio-chat.html"), "r") as f:
+        return f.read()
 
 
 mount_chainlit(app=app, target="cl_app.py", path="/chatui")

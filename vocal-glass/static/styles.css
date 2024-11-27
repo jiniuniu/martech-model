@@ -1,0 +1,33 @@
+/* styles.css */
+body {
+    font-family: Arial, sans-serif;
+}
+
+button {
+    font-size: 1rem;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+button:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s ease;
+}
+
+.bg-gray-100 {
+    background-color: #f7fafc;
+}
+
+.bg-white {
+    background-color: #ffffff;
+}
+
+.bg-gray-50 {
+    background-color: #f9fafb;
+}
