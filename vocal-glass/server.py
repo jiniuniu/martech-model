@@ -118,7 +118,7 @@ async def websocket_endpoint(websocket: WebSocket):
     session_id = await conn_mgr.connect(websocket)
     try:
         while True:
-            message = websocket.receive()
+            message = await websocket.receive()
 
             if isinstance(message, bytes):  # Audio data
                 logger.debug(f"audio data received, size: {len(message)} bytes")
