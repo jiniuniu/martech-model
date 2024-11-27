@@ -1,8 +1,10 @@
 import base64
+import os
 import wave
 from io import BytesIO
 from typing import List
 
+import shortuuid
 from assistants.chains import build_vision_chat_chain
 from assistants.llms import get_llm
 from assistants.sys_prompts import DEFAULT
@@ -12,6 +14,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from loguru import logger
 from pydantic import BaseModel
+from storage_conn.qiniu_conn import get_qiniu
 
 app = FastAPI()
 
@@ -38,12 +41,14 @@ async def text_to_wav(request: TTSRequest):
 
         # Reset buffer position
         buffer.seek(0)
-
-        # Base64 encode the WAV file
-        encoded_audio = base64.b64encode(buffer.read()).decode("utf-8")
-
+        file_name = shortuuid.ShortUUID().random(length=11)
+        file_path = f"/tmp/{file_name}.wav"
+        q = get_qiniu()
+        file_key = q.upload_file(file_path, "audio_assets")
+        audio_url = q.get_public_url(file_key)
+        os.remove(file_path)
         # Return the base64-encoded audio in a JSON response
-        return {"encoded_audio": encoded_audio}
+        return {"audio_url": audio_url}
     except Exception as e:
         logger.exception(f"Failed to generate or send TTS data. {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

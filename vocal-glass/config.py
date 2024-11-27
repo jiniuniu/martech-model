@@ -9,6 +9,8 @@ class EnvironmentSettings(BaseSettings):
     memory_uri: str
     whisper_model_path: str
     f5_model_path: str
+    qiniu_ak: str
+    qiniu_sk: str
 
     class Config:
         env_file = ".env"
