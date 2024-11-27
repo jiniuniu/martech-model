@@ -80,6 +80,7 @@ async def on_audio_end(elements: list[ElementBased]):
             author="You",
             type="user_message",
             content=user_input,
+            elements=elements,
         ).send()
 
     session_id = cl.user_session.get("id")

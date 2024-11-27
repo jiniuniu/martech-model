@@ -43,6 +43,8 @@ async def text_to_wav(request: TTSRequest):
         buffer.seek(0)
         file_name = shortuuid.ShortUUID().random(length=11)
         file_path = f"/tmp/{file_name}.wav"
+        with open(file_path, "wb") as f:
+            f.write(buffer.read())
         q = get_qiniu()
         file_key = q.upload_file(file_path, "audio_assets")
         audio_url = q.get_public_url(file_key)
