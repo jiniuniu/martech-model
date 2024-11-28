@@ -1,10 +1,10 @@
-import re
 import time
 from importlib.resources import files
 from io import BytesIO
 
 import librosa
 import numpy as np
+import regex as re
 import soundfile as sf
 from loguru import logger
 from models import load_f5_tts_model, load_whisper_model
@@ -28,16 +28,18 @@ def text_to_speech(text: str) -> BytesIO:
     try:
         f5tts = load_f5_tts_model()
         text = text.strip()
+        # Replace sequences of `~` with `!`
         text = re.sub(r"~+", "!", text)
+        # Remove content within parentheses (including parentheses themselves)
         text = re.sub(r"\(.*?\)", "", text)
+        # Remove content wrapped in `*` or `_` (e.g., *italic* or _underscore_)
         text = re.sub(r"(\*[^*]+\*)|(_[^_]+_)", "", text).strip()
-        text = re.sub(r"[^\x00-\x7F]+", "", text)
+        # Ensure that English, non-Chinese characters and non-punctuation characters are removed
+        text = re.sub(r"[^\x00-\x7F\u4E00-\u9FFF\p{P}]+", "", text)
         t0 = time.time()
         wav_np, sr, _ = f5tts.infer(
-            ref_file=str(
-                files("f5_tts").joinpath("infer/examples/basic/basic_ref_en.wav")
-            ),
-            ref_text="some call me nature, others call me mother nature.",
+            ref_file="voices/nova.wav",
+            ref_text="",
             gen_text=text,
         )
         generation_time = time.time() - t0
