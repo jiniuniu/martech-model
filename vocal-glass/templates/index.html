@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vocal Glass</title>
+
+    <!-- Load Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 text-gray-900 font-sans">
+    <div
+      class="min-h-screen flex flex-col items-center justify-start p-6 space-y-6"
+    >
+      <header class="w-full text-center">
+        <h1 class="text-2xl font-semibold text-blue-600">Vocal Glass</h1>
+        <p class="text-gray-600">看得到，听得见，会说话</p>
+      </header>
+
+      <!-- Camera and Photo Preview -->
+      <div class="w-full max-w-md bg-white shadow rounded-lg p-4 space-y-4">
+        <video id="cameraFeed" autoplay class="w-full h-96 rounded-lg"></video>
+        <img
+          id="photoPreview"
+          class="hidden w-full h-auto rounded-lg border border-gray-300"
+          alt="Captured Photo"
+        />
+
+        <div class="flex justify-between">
+          <button
+            id="flipCamera"
+            class="px-4 py-2 text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-150"
+          >
+            Flip Camera
+          </button>
+          <button
+            id="capturePhoto"
+            class="px-4 py-2 text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-150"
+          >
+            Capture Photo
+          </button>
+        </div>
+      </div>
+
+      <!-- Audio Recording and Playback -->
+      <div class="w-full max-w-md bg-white shadow rounded-lg p-4 space-y-4">
+        <button
+          id="toggleRecording"
+          class="px-4 py-2 text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-150"
+        >
+          Start Recording
+        </button>
+        <audio id="audioPlayback" class="hidden w-full" controls></audio>
+      </div>
+
+      <!-- Submit Button and Spinner -->
+      <div class="relative w-full max-w-md">
+        <button
+          id="submitData"
+          class="px-4 py-2 text-white bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-150 w-full max-w-md"
+          disabled
+        >
+          Submit Data
+        </button>
+        <div
+          id="spinner"
+          class="hidden absolute inset-0 flex items-center justify-center bg-white bg-opacity-75"
+        >
+          <!-- Spinner Icon -->
+          <svg
+            class="animate-spin h-8 w-8 text-blue-600"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Response Display -->
+      <div
+        id="responseOutput"
+        class="hidden w-full max-w-md bg-white shadow rounded-lg p-4 space-y-4"
+      >
+        <p id="responseText" class="text-gray-700"></p>
+        <audio id="responseAudio" class="hidden w-full" controls></audio>
+      </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+  </body>
+</html>
