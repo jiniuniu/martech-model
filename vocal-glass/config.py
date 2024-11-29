@@ -7,8 +7,7 @@ class EnvironmentSettings(BaseSettings):
     api_key: str
     llm_name: str
     memory_uri: str
-    whisper_model_path: str
-    f5_model_path: str
+    voice_server_url: str
     qiniu_ak: str
     qiniu_sk: str
 
