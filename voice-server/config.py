@@ -5,6 +5,7 @@ class EnvironmentSettings(BaseSettings):
 
     f5_model_path: str
     whisper_model_path: str
+    got_ocr_model_path: str
 
     class Config:
         env_file = ".env"

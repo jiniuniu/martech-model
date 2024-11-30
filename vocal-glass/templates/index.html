@@ -19,12 +19,14 @@
 
       <!-- Camera and Photo Preview -->
       <div class="w-full max-w-md bg-white shadow rounded-lg p-4 space-y-4">
-        <video id="cameraFeed" autoplay class="w-full h-96 rounded-lg"></video>
-        <img
-          id="photoPreview"
-          class="hidden w-full h-auto rounded-lg border border-gray-300"
-          alt="Captured Photo"
-        />
+        <div class="flex space-x-4">
+          <video id="cameraFeed" autoplay class="w-1/2 h-96 rounded-lg"></video>
+          <img
+            id="photoPreview"
+            class="hidden w-1/2 h-96 rounded-lg border border-gray-300"
+            alt="Captured Photo"
+          />
+        </div>
 
         <div class="flex justify-between">
           <button

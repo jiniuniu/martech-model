@@ -1,6 +1,8 @@
+import os
+import uuid
 from io import BytesIO
 
-from api import text_to_speech, transcribe_audio
+from api import ocr_image, text_to_speech, transcribe_audio
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -48,3 +50,20 @@ async def stt(file: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Error processing audio file: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error.")
+
+
+@app.post("/ocr")
+async def ocr(file: UploadFile = File(...)):
+    if file.content_type.startswith("image/"):
+        # Save the file temporarily
+        temp_file_path = f"/tmp/{uuid.uuid4()}.{file.filename.split('.')[-1]}"
+        with open(temp_file_path, "wb") as buffer:
+            buffer.write(await file.read())
+        # Process the image
+        ocr_result = ocr_image(temp_file_path)
+
+        # Clean up the temporary file
+        os.remove(temp_file_path)
+        return {"ocr_result": ocr_result}
+    else:
+        return {"error": "File is not an image"}
