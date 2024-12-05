@@ -37,7 +37,7 @@ def text_to_speech(text: str) -> BytesIO:
         text = re.sub(r"[^\x00-\x7F\u4E00-\u9FFF\p{P}]+", "", text)
         t0 = time.time()
         wav_np, sr, _ = f5tts.infer(
-            ref_file="voices/nova.wav",
+            ref_file="voices/basic_ref_en.wav",
             ref_text="",
             gen_text=text,
         )
