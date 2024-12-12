@@ -8,6 +8,7 @@ from diffusers import (
 )
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -31,15 +32,29 @@ pipeline = StableDiffusion3Pipeline.from_pretrained(
 pipeline.enable_model_cpu_offload()
 
 
-@app.post("/generate-image/")
-async def generate_image(prompt: str):
+class ImageGenRequest(BaseModel):
+
+    prompt: str
+    num_inference_steps: int = 28
+    guidance_scale: float = 4.5
+    max_sequence_length: int = 512
+
+
+@app.post("/generate_image")
+async def generate_image(request: ImageGenRequest):
     try:
+
+        prompt = request.prompt
+        num_inference_steps = request.num_inference_steps
+        guidance_scale = request.guidance_scale
+        max_sequence_length = request.max_sequence_length
+
         # Generate the image
         image = pipeline(
             prompt=prompt,
-            num_inference_steps=28,
-            guidance_scale=4.5,
-            max_sequence_length=512,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            max_sequence_length=max_sequence_length,
         ).images[0]
 
         # Convert the image to a BytesIO object
