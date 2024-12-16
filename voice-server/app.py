@@ -28,7 +28,7 @@ class TTSRequest(BaseModel):
 async def tts(request: TTSRequest):
     try:
         audio_buffer = text_to_speech(request.text)
-        return StreamingResponse(audio_buffer, media_type="audio/ogg; codecs=opus")
+        return StreamingResponse(audio_buffer, media_type="audio/wav")
 
     except Exception as e:
         logger.exception(f"Failed to generate or send TTS data. {e}")

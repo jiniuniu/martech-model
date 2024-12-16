@@ -56,7 +56,7 @@ def text_to_speech(text: str) -> BytesIO:
 
         # Convert to Opus using an in-memory buffer
         buffer = BytesIO()
-        sf.write(buffer, wav_np_24k, 24000, format="ogg", subtype="opus")
+        sf.write(buffer, wav_np_24k, 24000, format="wav")
         buffer.seek(0)
         return buffer
     except Exception as e:
