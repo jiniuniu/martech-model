@@ -6,7 +6,7 @@ import numpy as np
 import regex as re
 import soundfile as sf
 from loguru import logger
-from models import load_f5_tts_model, load_got_ocr_model, load_whisper_model
+from models import load_f5_tts_model, load_sd35_model, load_whisper_model
 
 
 def transcribe_audio(buffer: BytesIO) -> str:
@@ -64,11 +64,19 @@ def text_to_speech(text: str) -> BytesIO:
         raise
 
 
-def ocr_image(img_path: str) -> str:
-    try:
-        model, tokenizer = load_got_ocr_model()
-        res = model.chat(tokenizer, img_path, ocr_type="format")
-        return res
-    except Exception as e:
-        logger.error(f"Error: {str(e)}")
-        return "OCR failed with some error."
+def text_to_image(text: str) -> BytesIO:
+    pipeline = load_sd35_model()
+
+    # Generate the image
+    image = pipeline(
+        prompt=text,
+        num_inference_steps=28,
+        guidance_scale=4.5,
+        max_sequence_length=512,
+    ).images[0]
+
+    # Convert the image to a BytesIO object
+    image_bytes = BytesIO()
+    image.save(image_bytes, format="PNG")
+    image_bytes.seek(0)
+    return image_bytes

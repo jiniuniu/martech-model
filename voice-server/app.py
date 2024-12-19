@@ -1,8 +1,6 @@
-import os
-import uuid
 from io import BytesIO
 
-from api import ocr_image, text_to_speech, transcribe_audio
+from api import text_to_image, text_to_speech, transcribe_audio
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -21,6 +19,10 @@ app.add_middleware(
 
 
 class TTSRequest(BaseModel):
+    text: str
+
+
+class ImageGenRequest(BaseModel):
     text: str
 
 
@@ -52,18 +54,12 @@ async def stt(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Internal server error.")
 
 
-@app.post("/ocr")
-async def ocr(file: UploadFile = File(...)):
-    if file.content_type.startswith("image/"):
-        # Save the file temporarily
-        temp_file_path = f"/tmp/{uuid.uuid4()}.{file.filename.split('.')[-1]}"
-        with open(temp_file_path, "wb") as buffer:
-            buffer.write(await file.read())
-        # Process the image
-        ocr_result = ocr_image(temp_file_path)
+@app.post("/generate_image")
+async def generate_image(request: ImageGenRequest):
+    try:
+        image_bytes = text_to_image(request.text)
+        # Return the image as a streaming response
+        return StreamingResponse(image_bytes, media_type="image/png")
 
-        # Clean up the temporary file
-        os.remove(temp_file_path)
-        return {"ocr_result": ocr_result}
-    else:
-        return {"error": "File is not an image"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

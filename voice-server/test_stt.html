@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Speech Recognition Test</title>
+  </head>
+  <body>
+    <h1>Speech Recognition Test</h1>
+    <button id="recordButton">Start Recording</button>
+    <textarea id="transcriptionResult" rows="10" cols="50" readonly></textarea>
+
+    <script>
+      document
+        .getElementById('recordButton')
+        .addEventListener('click', toggleRecording);
+
+      let mediaRecorder;
+      let audioChunks = [];
+      let isRecording = false;
+
+      async function toggleRecording() {
+        if (isRecording) {
+          stopRecording();
+        } else {
+          startRecording();
+        }
+      }
+
+      async function startRecording() {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+          const transcription = await sendAudioToServer(audioBlob);
+          displayTranscription(transcription);
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        document.getElementById('recordButton').textContent = 'Stop Recording';
+      }
+
+      function stopRecording() {
+        mediaRecorder.stop();
+        isRecording = false;
+        document.getElementById('recordButton').textContent = 'Start Recording';
+      }
+
+      async function sendAudioToServer(audioBlob) {
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'recording.wav');
+
+        const response = await fetch(
+          'https://31b7fh-dtz1gry1tg5e.bdhz.lanrui.co/stt',
+          {
+            method: 'POST',
+            body: formData,
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          return data.transcription;
+        } else {
+          throw new Error('Failed to transcribe audio');
+        }
+      }
+
+      function displayTranscription(transcription) {
+        const resultArea = document.getElementById('transcriptionResult');
+        resultArea.value = transcription;
+      }
+    </script>
+  </body>
+</html>

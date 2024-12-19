@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Text to Speech Test</title>
+  </head>
+  <body>
+    <h1>Text to Speech Test</h1>
+    <textarea
+      id="inputText"
+      rows="4"
+      cols="50"
+      placeholder="Enter text here"
+    ></textarea
+    ><br />
+    <button id="generateAudio">Generate Audio</button>
+
+    <script>
+      document
+        .getElementById('generateAudio')
+        .addEventListener('click', async () => {
+          const text = document.getElementById('inputText').value;
+
+          if (!text) {
+            alert('Please enter some text!');
+            return;
+          }
+
+          try {
+            // Use the current origin to form the base URL dynamically
+            const baseUrl = 'https://31b7fh-dtz1gry1tg5e.bdhz.lanrui.co';
+            const response = await fetch(`${baseUrl}/tts`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ text }),
+            });
+
+            if (!response.ok) {
+              throw new Error(
+                'Failed to generate audio. Status: ' + response.status
+              );
+            }
+
+            const audioBlob = await response.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audio = new Audio(audioUrl);
+            audio.play();
+          } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while generating audio.');
+          }
+        });
+    </script>
+  </body>
+</html>
