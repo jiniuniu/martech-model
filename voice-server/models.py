@@ -1,5 +1,4 @@
 from functools import lru_cache
-from io import BytesIO
 
 import torch
 from config import env_settings
@@ -9,12 +8,8 @@ from diffusers import (
     StableDiffusion3Pipeline,
 )
 from f5_tts.api import F5TTS
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
 from faster_whisper import WhisperModel
 from loguru import logger
-from pydantic import BaseModel
-from transformers import AutoModel, AutoTokenizer
 
 
 @lru_cache(1)

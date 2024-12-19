@@ -162,3 +162,5 @@ cython_debug/
 .vscode/
 *.ipynb
 .qiniu_*
+
+voice-server/*.html
